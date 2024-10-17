@@ -1,0 +1,10 @@
+D:\Project_VC\SerialTerminal\bin\Debug\SerialTerminal.exe.config
+D:\Project_VC\SerialTerminal\bin\Debug\SerialTerminal.exe
+D:\Project_VC\SerialTerminal\bin\Debug\SerialTerminal.pdb
+D:\Project_VC\SerialTerminal\obj\Debug\SerialTerminal.csproj.AssemblyReference.cache
+D:\Project_VC\SerialTerminal\obj\Debug\SerialTerminal.Properties.Resources.resources
+D:\Project_VC\SerialTerminal\obj\Debug\SerialTerminal.csproj.GenerateResource.cache
+D:\Project_VC\SerialTerminal\obj\Debug\SerialTerminal.csproj.CoreCompileInputs.cache
+D:\Project_VC\SerialTerminal\obj\Debug\SerialTerminal.exe
+D:\Project_VC\SerialTerminal\obj\Debug\SerialTerminal.pdb
+D:\Project_VC\SerialTerminal\obj\Debug\SerialTerminal.SerialTerminal.resources
