@@ -1,5 +1,5 @@
 Serial Terminal
-![image](https://github.com/user-attachments/assets/ed1bf61e-4ad4-4e04-acdf-27957b6341b7)
+![image](https://github.com/user-attachments/assets/b596df2f-2b92-4162-a12b-38b520bc3697)
 
 20241018
 1. 실행아이콘을 윈도우 디폴트에서 커스텀으로 변경
