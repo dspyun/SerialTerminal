@@ -1,5 +1,6 @@
 Serial Terminal
-![image](https://github.com/user-attachments/assets/1ecd85a8-0c56-4d62-92e0-cefb1827400b)
+![image](https://github.com/user-attachments/assets/ed1bf61e-4ad4-4e04-acdf-27957b6341b7)
+
 20241018
 1. 실행아이콘을 윈도우 디폴트에서 커스텀으로 변경
 2. 레이아웃을 ankor방식에서 dock방식으로 변경하여 윈도우 사이즈 변경해도 richtextbox가 따로 놀지 않게 수정
