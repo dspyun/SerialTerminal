@@ -71,7 +71,7 @@ namespace SerialTerminal
                 title = "Serial Console" + " : " + com;
                 this.Text = title;
                 myPort.Open();
-                test_gps();
+                //test_gps();
                 gpsgroup_init();
             }
             catch (Exception exc)
@@ -364,6 +364,8 @@ namespace SerialTerminal
         private void button5_Click(object sender, EventArgs e)
         {
             show_gpsgroup();
+            gpsgroup.Clear();
+            gpsgroup_init();
         }
 
     }
