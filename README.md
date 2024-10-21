@@ -2,6 +2,10 @@
 ![image](https://github.com/user-attachments/assets/b596df2f-2b92-4162-a12b-38b520bc3697)
 
 Serial Terminal
+20241021
+1. split conationer를 적용하여 log와 summary의 창이 변화해도 비율을 유지하도록 변경
+2. gps 위도,경도, 리셋정보 추출 기능 추가
+
 20241018
 1. 실행아이콘을 윈도우 디폴트에서 커스텀으로 변경
 2. 레이아웃을 ankor방식에서 dock방식으로 변경하여 윈도우 사이즈 변경해도 richtextbox가 따로 놀지 않게 수정
