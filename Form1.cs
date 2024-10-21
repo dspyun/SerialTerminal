@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -135,27 +135,64 @@ namespace SerialTerminal
 
                 if (data.Contains("PRN:"))
                 { 
+                    // PRN이 나타나면 CN0를 추출하기 시작하고
                     string prn = "";
                     string cn0 = "";
                     prn = Get_gps_token_value(data, "PRN:");
                     cn0 = Get_gps_token_value(data, "C/N0:");
                     gpsgroup_Addcn0(prn, cn0);
+                }else if(data.Contains("location_core_cancel"))
+                {
+                    // location cancel이 나타나면 추출된 CN0를 보여준다
+                    show_gpsgroup();
+                    gpsgroup.Clear();
+                    gpsgroup_init();
+                }else if(data.Contains("Google"))
+                {
+                    // 좌표를 잡으면 보여준다. 이 때 기록된 cn0값의 강도를 점검한다
+                    int index = data.IndexOf("Google");
+                    string position = data.Substring(0, index);
+                    richTextBox1.AppendText(position);
                 }
+                else if (data.Contains("RESTREAS"))
+                {
+                    // 리셋이 발생하면 
+                    richTextBox1.AppendText(data);
+                }
+
+
             }
         }
 
         private void test_gps()
         {
-            string test = "[00:03:34.203,521] <dbg> location: method_gnss_print_pvt: PRN:  31, C/N0: 25.3, in fix: 0, unhealthy: 0\r\n";
-            for(int i =0;i<20;i++)
+
+            string test;
+            test = "[00:03:34.203,521] <dbg> location: method_gnss_print_pvt: PRN:  31, C/N0: 25.3, in fix: 0, unhealthy: 0\r\n";
+            //test = "[00:00:00.389,038] <err> main: RESTREAS : 0";
+            //test = "[00:04:43.760,437] <dbg> location: location_core_event_cb_fn:   Google maps URL: https://maps.google.com/?q=37.414010,126.976831";
+            //test = "Google maps URL: https://maps.google.com/?q=37.414010,126.976831\r\n";
+
+            for (int i =0;i<20;i++)
             {
                 string prn = "";
                 string cn0 = "";
                 prn = Get_gps_token_value(test, "PRN:");
                 cn0 = Get_gps_token_value(test, "C/N0:");
-                gpsgroup_Addcn0(prn, cn0);
+                if(prn != null) gpsgroup_Addcn0(prn, cn0);
             }
-            show_gpsgroup();
+            if (test.Contains("Google"))
+            {
+                int index = test.IndexOf("Google");
+                int length = test.Length;
+                string position = test.Substring(index, length-index);
+                richTextBox2.AppendText(position);
+            }
+            else if (test.Contains("RESTREAS"))
+            {
+                richTextBox2.AppendText(test);
+            }
+                show_gpsgroup();
         }
 
         private void gpsgroup_Addcn0(string prn, string cn0)
@@ -295,17 +332,12 @@ namespace SerialTerminal
             return null;
         }
 
-        private void richTextBox1_TextChanged(object sender, EventArgs e)
-        {
-            richTextBox1.SelectionStart = richTextBox1.TextLength;
-            richTextBox1.ScrollToCaret();
-            this.Text = title + "("+richTextBox1.TextLength+" byte)";
-        }
 
         private void Form1_Load(object sender, EventArgs e)
         {
 
         }
+
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
             int select_index = comboBox1.SelectedIndex;
@@ -368,5 +400,20 @@ namespace SerialTerminal
             gpsgroup_init();
         }
 
+
+        private void richTextBox1_TextChanged(object sender, EventArgs e)
+        {
+            richTextBox1.SelectionStart = richTextBox1.TextLength;
+            richTextBox1.ScrollToCaret();
+            this.Text = title + "(" + richTextBox1.TextLength + " byte)";
+
+        }
+
+        private void richTextBox2_TextChanged(object sender, EventArgs e)
+        {
+
+            richTextBox2.SelectionStart = richTextBox1.TextLength;
+            richTextBox2.ScrollToCaret();
+        }
     }
 }
