@@ -25,12 +25,12 @@ namespace SerialTerminal
         public SerialPort myPort;
         private DateTime dateTime;
         private string com = "COM4";
-        private string title = " ";
+        private string title = "Serial Console";
         SaveFileDialog SaveFileDialog1;
         MemoryStream userInput = new MemoryStream();
         List<List<string>> gpsgroup = new List<List<string>>();
         bool allowAutoScroll = true;
-
+        string scroll_mode="auto scroll";
 
         public SerialTerminal()
         {
@@ -70,7 +70,7 @@ namespace SerialTerminal
 
             try
             {
-                title = "Serial Console" + " : " + com;
+                this.Text = title + "(" + richTextBox1.TextLength + " byte)" + " : " + scroll_mode;
                 this.Text = title;
                 myPort.Open();
                 //test_gps();
@@ -179,6 +179,7 @@ namespace SerialTerminal
                 string position = log.Substring(index, length - index);
                 richTextBox2.AppendText(position);
             }
+
             if (log.Contains("RESTREAS"))
             {
                 // 리셋이 발생하면 빨간색으로 표시해준다
@@ -361,13 +362,10 @@ namespace SerialTerminal
             return null;
         }
 
-
         private void Form1_Load(object sender, EventArgs e)
         {
 
         }
-
-
 
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -430,23 +428,34 @@ namespace SerialTerminal
             gpsgroup.Clear();
             gpsgroup_init();
         }
+        private void RichTextBox1_VScroll(object sender, EventArgs e)
+        {
+
+
+
+        }
 
         private void RichTextBox1_Click(object sender, EventArgs e)
         {
-            if (allowAutoScroll) allowAutoScroll = false;
-            else allowAutoScroll = true;
+            // auto scroll할 때는 해당 textbox에 포커스를 해주고
+            // stop scroll할 때는 해당 textbox에 포커스를 빼준다
+            if (allowAutoScroll) { allowAutoScroll = false; scroll_mode = "stop scroll"; this.richTextBox2.Focus(); }
+            else { allowAutoScroll = true; scroll_mode = "auto scroll"; this.richTextBox1.Focus(); }
+
+            this.Text = title + "(" + richTextBox1.TextLength + " byte)"+ " : " + scroll_mode;
 
         }
 
         private void richTextBox1_TextChanged(object sender, EventArgs e)
         {
+            
             if (allowAutoScroll)
             {
-
                 richTextBox1.SelectionStart = richTextBox1.TextLength;
                 richTextBox1.ScrollToCaret();
-                this.Text = title + "(" + richTextBox1.TextLength + " byte)";
             }
+            this.Text = title + "(" + richTextBox1.TextLength + " byte)" + " : " + scroll_mode;
+            
         }
 
         private void richTextBox2_TextChanged(object sender, EventArgs e)
