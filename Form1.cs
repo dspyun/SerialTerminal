@@ -7,12 +7,14 @@ using System.IO;
 using System.IO.Ports;
 using System.Linq;
 using System.Net.NetworkInformation;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 using System.Windows.Forms;
 using System.Windows.Forms.VisualStyles;
 using System.Xml;
+using static System.Net.Mime.MediaTypeNames;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
@@ -27,7 +29,8 @@ namespace SerialTerminal
         SaveFileDialog SaveFileDialog1;
         MemoryStream userInput = new MemoryStream();
         List<List<string>> gpsgroup = new List<List<string>>();
-       
+        bool allowAutoScroll = true;
+
 
         public SerialTerminal()
         {
@@ -39,7 +42,6 @@ namespace SerialTerminal
             GetSerialPorts();
             SaveFileDialog1 = new SaveFileDialog();
             Richbox_show_logo();
-
         }
 
         public void GetSerialPorts()
@@ -123,45 +125,67 @@ namespace SerialTerminal
 
             for (int i = 0; i < 256; i++)
             {
+                string time = dateTime.Hour + ":" + dateTime.Minute + ":" + dateTime.Second;
+
                 string data = Readline(existing_data, i);
                 if (data == null) break;
-                if (data == "\n" || data == " ") continue;
+                if (data.Equals("\n") || data.Equals(" ")) continue;
 
+                // 특수문자 처리하기 전에 Google, Reset 문자 체크한다
+                ETCSummary(data, time);
+
+                // 특수문자 처리 후, 시간붙이고 + 컬러링 및 PRN, CN0를 추출한다
                 data = Remove_special_char(data);
                 Coloring(data);
-
-                string time = dateTime.Hour + ":" + dateTime.Minute + ":" + dateTime.Second;
                 richTextBox1.AppendText(time + " " + data);
-
-                if (data.Contains("PRN:"))
-                { 
-                    // PRN이 나타나면 CN0를 추출하기 시작하고
-                    string prn = "";
-                    string cn0 = "";
-                    prn = Get_gps_token_value(data, "PRN:");
-                    cn0 = Get_gps_token_value(data, "C/N0:");
-                    gpsgroup_Addcn0(prn, cn0);
-                }else if(data.Contains("location_core_cancel"))
-                {
-                    // location cancel이 나타나면 추출된 CN0를 보여준다
-                    show_gpsgroup();
-                    gpsgroup.Clear();
-                    gpsgroup_init();
-                }else if(data.Contains("Google"))
-                {
-                    // 좌표를 잡으면 보여준다. 이 때 기록된 cn0값의 강도를 점검한다
-                    int index = data.IndexOf("Google");
-                    string position = data.Substring(0, index);
-                    richTextBox1.AppendText(position);
-                }
-                else if (data.Contains("RESTREAS"))
-                {
-                    // 리셋이 발생하면 
-                    richTextBox1.AppendText(data);
-                }
-
-
+                PRNSummary(data,time);
             }
+        }
+
+        private void PRNSummary(string log,string time)
+        {
+
+            if (log.Contains("PRN:"))
+            {
+                // PRN이 나타나면 CN0를 추출하기 시작하고
+                string prn = "";
+                string cn0 = "";
+                prn = Get_gps_token_value(log, "PRN:");
+                cn0 = Get_gps_token_value(log, "C/N0:");
+                gpsgroup_Addcn0(prn, cn0);
+            }
+            else if (log.Contains("location_core_cancel") || log.Contains("Location method timeout")
+                || log.Contains("Method specific timeout expired") || log.Contains("Location acquired successfully"))
+            {
+                // gps종료조건을 만나면 추출된 CN0를 보여준다 
+                show_gpsgroup();
+                gpsgroup.Clear();
+                gpsgroup_init();
+            }
+
+        }
+        private void ETCSummary(string log, string time)
+        {
+            if (log.Contains("location_core_timer_start"))
+            {
+                richTextBox2.AppendText(time + "\n");
+            }
+
+            if (log.Contains("Google"))
+            {
+                // 좌표를 잡으면 보여준다. 이 때 기록된 cn0값의 강도를 점검한다
+                int index = log.IndexOf("Google");
+                int length = log.Length;
+                string position = log.Substring(index, length - index);
+                richTextBox2.AppendText(position);
+            }
+            if (log.Contains("RESTREAS"))
+            {
+                // 리셋이 발생하면 빨간색으로 표시해준다
+                richTextBox2.SelectionColor = Color.Red;                
+                richTextBox2.AppendText(log);
+            }
+
         }
 
         private void test_gps()
@@ -183,6 +207,7 @@ namespace SerialTerminal
             }
             if (test.Contains("Google"))
             {
+
                 int index = test.IndexOf("Google");
                 int length = test.Length;
                 string position = test.Substring(index, length-index);
@@ -190,9 +215,11 @@ namespace SerialTerminal
             }
             else if (test.Contains("RESTREAS"))
             {
+                richTextBox2.SelectionColor = Color.Red;
                 richTextBox2.AppendText(test);
+                //richTextBox2.SelectionColor = Color.Black;
             }
-                show_gpsgroup();
+            show_gpsgroup();
         }
 
         private void gpsgroup_Addcn0(string prn, string cn0)
@@ -216,14 +243,13 @@ namespace SerialTerminal
             gpsgroup.Insert(0, new_gps);
             return;
 
-            // show_gpsgroup();
-            return;
         }
 
         private void show_gpsgroup()
         {
             string sum_string ="";
 
+            richTextBox2.SelectionColor = Color.Black;
             for (int i = 0; i< gpsgroup.Count; i++)
             {
                 sum_string += "PRN : ";
@@ -235,6 +261,9 @@ namespace SerialTerminal
                 richTextBox2.AppendText(sum_string+"\n");
                 sum_string = "";
             }
+            string time = dateTime.Hour + ":" + dateTime.Minute + ":" + dateTime.Second;
+            time += "----------------------------------------------------------\n";
+            richTextBox2.AppendText(time);
         }
 
         private void gpsgroup_init()
@@ -338,6 +367,8 @@ namespace SerialTerminal
 
         }
 
+
+
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
             int select_index = comboBox1.SelectedIndex;
@@ -400,19 +431,27 @@ namespace SerialTerminal
             gpsgroup_init();
         }
 
+        private void RichTextBox1_Click(object sender, EventArgs e)
+        {
+            if (allowAutoScroll) allowAutoScroll = false;
+            else allowAutoScroll = true;
+
+        }
 
         private void richTextBox1_TextChanged(object sender, EventArgs e)
         {
-            richTextBox1.SelectionStart = richTextBox1.TextLength;
-            richTextBox1.ScrollToCaret();
-            this.Text = title + "(" + richTextBox1.TextLength + " byte)";
+            if (allowAutoScroll)
+            {
 
+                richTextBox1.SelectionStart = richTextBox1.TextLength;
+                richTextBox1.ScrollToCaret();
+                this.Text = title + "(" + richTextBox1.TextLength + " byte)";
+            }
         }
 
         private void richTextBox2_TextChanged(object sender, EventArgs e)
         {
-
-            richTextBox2.SelectionStart = richTextBox1.TextLength;
+            richTextBox2.SelectionStart = richTextBox2.TextLength;
             richTextBox2.ScrollToCaret();
         }
     }
