@@ -9,6 +9,7 @@ using System.Linq;
 using System.Net.NetworkInformation;
 using System.Reflection.Emit;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using System.Windows.Forms;
@@ -31,6 +32,7 @@ namespace SerialTerminal
         List<List<string>> gpsgroup = new List<List<string>>();
         bool allowAutoScroll = true;
         string scroll_mode="auto scroll";
+        Color Current_Color;
 
         public SerialTerminal()
         {
@@ -71,7 +73,6 @@ namespace SerialTerminal
             try
             {
                 this.Text = title + "(" + richTextBox1.TextLength + " byte)" + " : " + scroll_mode;
-                this.Text = title;
                 myPort.Open();
                 //test_gps();
                 gpsgroup_init();
@@ -97,7 +98,7 @@ namespace SerialTerminal
         private void Richbox_show_logo()
         {
             richTextBox1.Font = new Font("Consolas", 30);
-            richTextBox1.Text = "\n\n\n"+"HyunSung" + "\n\n" + "Serial Console";
+            richTextBox1.Text = "\n\n\n" + "Serial Console";
             richTextBox1.SelectAll();
             richTextBox1.SelectionAlignment = HorizontalAlignment.Center;
             richTextBox1.Select(0, 0);
@@ -120,29 +121,26 @@ namespace SerialTerminal
 
         private void displayData_event(string existing_data)
         {
-            dateTime = DateTime.Now;
+
             System.Drawing.Color mycolor = Color.White;
+            dateTime = DateTime.Now;
+            string time = dateTime.Hour + ":" + dateTime.Minute + ":" + dateTime.Second + " ";
 
             for (int i = 0; i < 256; i++)
             {
-                string time = dateTime.Hour + ":" + dateTime.Minute + ":" + dateTime.Second;
-
                 string data = Readline(existing_data, i);
                 if (data == null) break;
-                if (data.Equals("\n") || data.Equals(" ")) continue;
+                //if (data.Equals("\n") || data.Equals(" ")) continue;
 
-                // 특수문자 처리하기 전에 Google, Reset 문자 체크한다
-                ETCSummary(data, time);
-
-                // 특수문자 처리 후, 시간붙이고 + 컬러링 및 PRN, CN0를 추출한다
-                data = Remove_special_char(data);
-                Coloring(data);
-                richTextBox1.AppendText(time + " " + data);
-                PRNSummary(data,time);
+                Ansi_Coloring(time,data);
+                //  Google, Reset 문자열을 Summary창에 보여준다
+                ETCSummary(time, data);
+                //  GPS CN0를 읽어 Summary창에 보여준다
+                PRNSummary(time, data);
             }
         }
 
-        private void PRNSummary(string log,string time)
+        private void PRNSummary(string time, string log)
         {
 
             if (log.Contains("PRN:"))
@@ -164,7 +162,7 @@ namespace SerialTerminal
             }
 
         }
-        private void ETCSummary(string log, string time)
+        private void ETCSummary( string time, string log)
         {
             if (log.Contains("location_core_timer_start"))
             {
@@ -184,6 +182,12 @@ namespace SerialTerminal
             {
                 // 리셋이 발생하면 빨간색으로 표시해준다
                 richTextBox2.SelectionColor = Color.Red;                
+                richTextBox2.AppendText(log);
+            }
+            if (log.Contains("SMS") || log.Contains("sms"))
+            {
+                // SMS 수신하면 빨간색으로 표시해준다
+                richTextBox2.SelectionColor = Color.Blue;
                 richTextBox2.AppendText(log);
             }
 
@@ -262,6 +266,7 @@ namespace SerialTerminal
                 richTextBox2.AppendText(sum_string+"\n");
                 sum_string = "";
             }
+            dateTime = DateTime.Now;
             string time = dateTime.Hour + ":" + dateTime.Minute + ":" + dateTime.Second;
             time += "----------------------------------------------------------\n";
             richTextBox2.AppendText(time);
@@ -320,28 +325,58 @@ namespace SerialTerminal
             
         }
 
-        private void Coloring(string data)
-        {
-            Color mycolor = Color.White;
-            string time = dateTime.Hour + ":" + dateTime.Minute + ":" + dateTime.Second;
-            if (data.Contains("err")) mycolor = Color.Red;
-            else mycolor = Color.White;
 
-            richTextBox1.SelectionColor = mycolor;
+        private void Ansi_Coloring(string time, string data)
+        {
+            char esc_ch =(char) 0x1b;
+
+            richTextBox1.AppendText(time);
+            if (data.Contains(esc_ch)) {
+                string[] normal_string = data.Split(esc_ch);
+                int array_length = normal_string.Length;
+
+                set_coloring(normal_string[0]);
+
+                if (array_length == 2)
+                {
+                    set_coloring(normal_string[1]);
+
+                } else if (array_length == 3)
+                {
+                    set_coloring(normal_string[1]);
+                    set_coloring(normal_string[2]);
+                }
+            }
+            else
+            {
+                // control 문자가 없으면
+                richTextBox1.SelectionColor = Current_Color;
+                richTextBox1.AppendText(data);
+            }
+
         }
 
-        private string Remove_special_char(string src)
+        private void set_coloring(string original)
         {
-            string dst="";
-            byte ch = 0x1b;
+            string control_red_start = "[1;31m";
+            string control_white_start = "[0m";
+            string src= original;
 
-            string remove_string = (char)ch + "[0m";
-            dst = src.Replace(remove_string, "");
+            if (src.Contains(control_red_start))
+            {
+                Current_Color = Color.Red;
+                richTextBox1.SelectionColor = Current_Color;
+                src = src.Replace(control_red_start, "");
+                richTextBox1.AppendText(src);
 
-            remove_string = (char)ch + "[1;31m";
-            dst = dst.Replace(remove_string, "");
-
-            return dst;
+            }
+            else if (src.Contains(control_white_start))
+            {
+                Current_Color = Color.White;
+                richTextBox1.SelectionColor = Current_Color;
+                src = src.Replace(control_white_start, "");
+                richTextBox1.AppendText(src);
+            }
         }
 
         private string Readline(string data,int index)
@@ -371,6 +406,30 @@ namespace SerialTerminal
         {
             int select_index = comboBox1.SelectedIndex;
             com = comboBox1.Items[select_index].ToString();
+
+            myPort = new SerialPort();
+            myPort.BaudRate = 115200;
+            myPort.PortName = com;
+            myPort.Parity = Parity.None;
+            myPort.DataBits = 8;
+            myPort.StopBits = StopBits.One;
+            myPort.DataReceived += MyPort_DataReceived;
+
+            button1.BackColor = Color.LightGray;
+
+            Richbox_clear_logo();
+
+            try
+            {
+                this.Text = title + "(" + richTextBox1.TextLength + " byte)" + " : " + scroll_mode;
+                myPort.Open();
+                //test_gps();
+                gpsgroup_init();
+            }
+            catch (Exception exc)
+            {
+                MessageBox.Show(exc.Message, "Errore");
+            }
         }
 
         private void button3_Click(object sender, EventArgs e)
@@ -431,14 +490,13 @@ namespace SerialTerminal
         private void RichTextBox1_VScroll(object sender, EventArgs e)
         {
 
-
-
         }
 
         private void RichTextBox1_Click(object sender, EventArgs e)
         {
             // auto scroll할 때는 해당 textbox에 포커스를 해주고
             // stop scroll할 때는 해당 textbox에 포커스를 빼준다
+            // 포커스에 따라서 auto/stop기능 활성화가 정상적으로 동작한다
             if (allowAutoScroll) { allowAutoScroll = false; scroll_mode = "stop scroll"; this.richTextBox2.Focus(); }
             else { allowAutoScroll = true; scroll_mode = "auto scroll"; this.richTextBox1.Focus(); }
 
