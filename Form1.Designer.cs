@@ -168,6 +168,7 @@ namespace SerialTerminal
             this.richTextBox1.Text = "";
             this.richTextBox1.TextChanged += new System.EventHandler(this.richTextBox1_TextChanged);       
             this.richTextBox1.Click += new System.EventHandler(this.RichTextBox1_Click);
+			this.richTextBox1.VScroll += new System.EventHandler(this.RichTextBox1_VScroll);
 
 			// 
             // richTextBox2
@@ -220,4 +221,3 @@ namespace SerialTerminal
         // private System.Windows.Forms.TextBox textBox1;
     }
 }
-
