@@ -39,11 +39,14 @@ namespace SerialTerminal
             InitializeComponent();
             richTextBox1.BackColor = Color.Black;
             richTextBox1.ForeColor = Color.White;
+            richTextBox2.BackColor = Color.Black;
+            richTextBox2.ForeColor = Color.White;
             button1.Text = "Open";
             button2.Text = "Close";
             GetSerialPorts();
             SaveFileDialog1 = new SaveFileDialog();
             Richbox_show_logo();
+            gpsgroup_init();
         }
 
         public void GetSerialPorts()
@@ -72,10 +75,9 @@ namespace SerialTerminal
 
             try
             {
-                this.Text = title + "(" + richTextBox1.TextLength + " byte)" + " : " + scroll_mode;
+                show_title_info();
                 myPort.Open();
                 //test_gps();
-                gpsgroup_init();
             }
             catch (Exception exc)
             {
@@ -124,19 +126,25 @@ namespace SerialTerminal
 
             System.Drawing.Color mycolor = Color.White;
             dateTime = DateTime.Now;
-            string time = dateTime.Hour + ":" + dateTime.Minute + ":" + dateTime.Second + " ";
+            string time = dateTime.ToString("HH:mm:ss");
+            string input_data = "";
+            input_data = existing_data;
 
-            for (int i = 0; i < 256; i++)
+            for (int linenumber = 0; linenumber < 256; linenumber++)
             {
-                string data = Readline(existing_data, i);
+                string data = Readline(input_data, linenumber);
+
                 if (data == null) break;
-                //if (data.Equals("\n") || data.Equals(" ")) continue;
+                if (data.Equals("\n") || data.Equals(" ")) continue;
 
                 Ansi_Coloring(time,data);
                 //  Google, Reset 문자열을 Summary창에 보여준다
                 ETCSummary(time, data);
                 //  GPS CN0를 읽어 Summary창에 보여준다
                 PRNSummary(time, data);
+                // input_data에 여러 라인이 있을 경우,
+                // 읽은 라인은 제거하고 next 라인을 읽는다
+
             }
         }
 
@@ -184,12 +192,14 @@ namespace SerialTerminal
                 richTextBox2.SelectionColor = Color.Red;                
                 richTextBox2.AppendText(log);
             }
+            /*
             if (log.Contains("SMS") || log.Contains("sms"))
             {
                 // SMS 수신하면 빨간색으로 표시해준다
-                richTextBox2.SelectionColor = Color.Blue;
+                richTextBox2.SelectionColor = Color.Yellow;
                 richTextBox2.AppendText(log);
             }
+            */
 
         }
 
@@ -229,8 +239,10 @@ namespace SerialTerminal
 
         private void gpsgroup_Addcn0(string prn, string cn0)
         {
-           
-            for (int i=0; i < gpsgroup.Count; i++)
+            // gpsgroup의 구조는 아래와 같다
+            //prn_value,cn0,cn0,cn0....
+            int i = 0;
+            for ( i=0; i < gpsgroup.Count; i++)
             {
                 if (gpsgroup[i][0].Equals(prn))
                 {
@@ -238,47 +250,73 @@ namespace SerialTerminal
                     gpsgroup[i].Add(cn0);
                     //show_gpsgroup();
                     return;
-                }
+                } 
             }
 
             // gpsgroup에 prn이 없으면 새로 추가
-            List<string> new_gps = new List<string>();
-            new_gps.Add(prn);
-            new_gps.Add(cn0);
-            gpsgroup.Insert(0, new_gps);
+            List<string> new_prn = new List<string>();
+            new_prn.Add(prn);
+            new_prn.Add(cn0);
+            gpsgroup.Add(new_prn);
+
+            //richTextBox2.AppendText("add prn" + prn +"\n");
             return;
 
         }
 
+        private void gpsgroup_init()
+        {
+            List<string> new_prn = new List<string>();
+            new_prn.Add("");
+            new_prn.Add("");
+            gpsgroup.Add(new_prn);
+        }
+
         private void show_gpsgroup()
         {
-            string sum_string ="";
-
+            int j = 0;
+            float average_cn0 = 0;
+            int cn0_count = 0;
+            // gpsgroup : 3, 36.6, 24.7, 23.9, 24.6
+            // PRN : 3, C/N0 : 26.6, 24.7, 23.9, 24.6,  >> average : 0
             richTextBox2.SelectionColor = Color.Black;
             for (int i = 0; i< gpsgroup.Count; i++)
             {
-                sum_string += "PRN : ";
-                for (int j = 0;  gpsgroup[i].Count > j ; j++)
+                string sum_string=""; 
+                for ( j = 0;  j < gpsgroup[i].Count ; j++)
                 {
-                    if (j == 1) sum_string += "C/N0 : ";
-                    sum_string += gpsgroup[i][j] + ", ";
+                    if(j==0)
+                    {
+                        sum_string += "PRN : ";
+                        sum_string += gpsgroup[i][j] + ", ";
+                    } else
+                    {
+                        if (j == 1) sum_string += "C/N0 : ";
+                        if (!gpsgroup[i][j].Equals(""))
+                        {
+                            average_cn0 += float.Parse(gpsgroup[i][j]);
+                            sum_string += gpsgroup[i][j] + ", ";
+                            cn0_count++;
+                        }
+                    }
                 }
-                richTextBox2.AppendText(sum_string+"\n");
+                if (cn0_count > 0) average_cn0 = average_cn0 / cn0_count;
+                richTextBox2.AppendText(sum_string + " >> " +average_cn0.ToString()+"\n");
                 sum_string = "";
+                average_cn0 = 0;
+                cn0_count = 0;
+
             }
             dateTime = DateTime.Now;
-            string time = dateTime.Hour + ":" + dateTime.Minute + ":" + dateTime.Second;
+            //string time = dateTime.Hour + ":" + dateTime.Minute + ":" + dateTime.Second;
+            string time = dateTime.ToString("HH:mm:ss");
             time += "----------------------------------------------------------\n";
             richTextBox2.AppendText(time);
         }
 
-        private void gpsgroup_init()
+        private void show_title_info()
         {
-
-            List<string> gps = new List<string>();
-            gps.Add("");
-            gpsgroup.Add(gps);
-
+            this.Text = title + "(" + richTextBox1.TextLength + " byte)" + " : " + scroll_mode;
         }
 
         private string Get_gps_token_value(string data, string token)
@@ -296,17 +334,7 @@ namespace SerialTerminal
             //info_string is "PRN:  10, C/N0: 26.7, in fix: 0, unhealthy: 0"
 
             // 2. delete all space
-            char[] temp = info_string.ToCharArray();
-            string_length = info_string.Length;
-
-            info_string = "";
-            for (int j = 0; j < string_length; j++)
-            {
-                if (temp[j] != ' ')
-                {
-                    info_string += temp[j];
-                }
-            }
+            info_string = info_string.Replace(" ", "");
             // info_string is "PRN:10,C/N0:26.7,infix:0,unhealthy:0"
 
             // 3. extract token PRN value to string
@@ -318,7 +346,6 @@ namespace SerialTerminal
             for (i=token.Length;info_chars[i] != ',';i++) // skip "PRN:" length
             {
                 value += info_chars[i];
-                if (i >= string_length) break;
             }
 
             return value;
@@ -351,7 +378,8 @@ namespace SerialTerminal
             {
                 // control 문자가 없으면
                 richTextBox1.SelectionColor = Current_Color;
-                richTextBox1.AppendText(data);
+                if(data.Contains("\n")) richTextBox1.AppendText(data);
+                else richTextBox1.AppendText(data + "\r\n");
             }
 
         }
@@ -387,7 +415,7 @@ namespace SerialTerminal
             for(int i=0;i< data.Length; i++)
             {
                 result += chars[i];
-                if (chars[i] == '\n')
+                if (chars[i].Equals('\n'))
                 {
                     if (ret_index == index || result == null) return result;
                     ret_index++;
@@ -421,10 +449,12 @@ namespace SerialTerminal
 
             try
             {
-                this.Text = title + "(" + richTextBox1.TextLength + " byte)" + " : " + scroll_mode;
+                            
+                show_title_info();
                 myPort.Open();
                 //test_gps();
                 gpsgroup_init();
+                this.richTextBox2.Focus();
             }
             catch (Exception exc)
             {
@@ -448,6 +478,7 @@ namespace SerialTerminal
 
             dateTime = DateTime.Now;
             string time = dateTime.Year + "" + dateTime.Month + ""+ dateTime.Day +"_"+ dateTime.Hour + "" + dateTime.Minute+"" + dateTime.Second;
+
             SaveFileDialog1.FileName = "log"+"_"+time;
             // DefaultExt is only used when "All files" is selected from 
             // the filter box and no extension is specified by the user.
@@ -481,12 +512,6 @@ namespace SerialTerminal
             richTextBox1.Update();
         }
 
-        private void button5_Click(object sender, EventArgs e)
-        {
-            show_gpsgroup();
-            gpsgroup.Clear();
-            gpsgroup_init();
-        }
         private void RichTextBox1_VScroll(object sender, EventArgs e)
         {
 
@@ -500,7 +525,7 @@ namespace SerialTerminal
             if (allowAutoScroll) { allowAutoScroll = false; scroll_mode = "stop scroll"; this.richTextBox2.Focus(); }
             else { allowAutoScroll = true; scroll_mode = "auto scroll"; this.richTextBox1.Focus(); }
 
-            this.Text = title + "(" + richTextBox1.TextLength + " byte)"+ " : " + scroll_mode;
+            show_title_info();
 
         }
 
@@ -512,7 +537,7 @@ namespace SerialTerminal
                 richTextBox1.SelectionStart = richTextBox1.TextLength;
                 richTextBox1.ScrollToCaret();
             }
-            this.Text = title + "(" + richTextBox1.TextLength + " byte)" + " : " + scroll_mode;
+            show_title_info();
             
         }
 
@@ -521,5 +546,38 @@ namespace SerialTerminal
             richTextBox2.SelectionStart = richTextBox2.TextLength;
             richTextBox2.ScrollToCaret();
         }
+        private static Color GetDarkerColor(Color clr)
+        {
+            Color c = new Color();
+            int r, g, b;
+
+            r = clr.R - 18;
+            g = clr.G - 18;
+            b = clr.B - 18;
+
+            if (r < 0) r = 0;
+            if (g < 0) g = 0;
+            if (b < 0) b = 0;
+
+            c = Color.FromArgb(r, g, b);
+            return c;
+        }
+
+        private void button6_Click(object sender, EventArgs e)
+        {
+            string cmd = comboBox2.Text;
+            if(comboBox2.FindString(cmd) == -1) comboBox2.Items.Add(cmd);
+            cmd += "\r\n";
+            myPort.Write(cmd);
+            //myPort.WriteLine(cmd);
+            //richTextBox2.AppendText(cmd);
+        }
+
+        private void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            string cmd = comboBox2.Text;
+        }
     }
+
+
 }
