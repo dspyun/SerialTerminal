@@ -48,6 +48,7 @@ namespace SerialTerminal
             Richbox_show_logo();
             gpsgroup_init();
             comport_speed_init();
+            register_cmd_table();
         }
 
         public void GetSerialPorts()
@@ -56,7 +57,7 @@ namespace SerialTerminal
             string[] port = System.IO.Ports.SerialPort.GetPortNames();
             foreach(string portName in port)
             {
-                comboBox1.Items.Add(portName);
+                comBox1.Items.Add(portName);
             }
         }
 
@@ -103,21 +104,19 @@ namespace SerialTerminal
             System.Drawing.Color mycolor = Color.White;
             dateTime = DateTime.Now;
             string time = dateTime.ToString("HH:mm:ss");
-            string input_data = "";
-            input_data = existing_data;
 
             for (int linenumber = 0; linenumber < 256; linenumber++)
             {
-                string data = Readline(input_data, linenumber);
+                string oneline = Readline(existing_data, linenumber);
 
-                if (data == null) break;
-                if (data.Equals("\n") || data.Equals(" ")) continue;
+                if (oneline == null) break;
+                if (oneline.Equals("\n") || oneline.Equals(" ")) continue;
 
-                Ansi_Coloring(time,data);
+                Ansi_Coloring(time, oneline);
                 //  Google, Reset 문자열을 Summary창에 보여준다
-                ETCSummary(time, data);
+                ETCSummary(time, oneline);
                 //  GPS CN0를 읽어 Summary창에 보여준다
-                PRNSummary(time, data);
+                PRNSummary(time, oneline);
                 // input_data에 여러 라인이 있을 경우,
                 // 읽은 라인은 제거하고 next 라인을 읽는다
 
@@ -141,17 +140,12 @@ namespace SerialTerminal
             {
                 // gps종료조건을 만나면 추출된 CN0를 보여준다 
                 show_gpsgroup();
-                gpsgroup.Clear();
                 gpsgroup_init();
             }
 
         }
         private void ETCSummary( string time, string log)
         {
-            if (log.Contains("location_core_timer_start"))
-            {
-                richTextBox2.AppendText(time + "\n");
-            }
 
             if (log.Contains("Google"))
             {
@@ -242,6 +236,8 @@ namespace SerialTerminal
 
         private void gpsgroup_init()
         {
+            gpsgroup.Clear();
+
             List<string> new_prn = new List<string>();
             new_prn.Add("");
             new_prn.Add("");
@@ -286,7 +282,7 @@ namespace SerialTerminal
             dateTime = DateTime.Now;
             //string time = dateTime.Hour + ":" + dateTime.Minute + ":" + dateTime.Second;
             string time = dateTime.ToString("HH:mm:ss");
-            time += "----------------------------------------------------------\n";
+            time += " --- End GPS Summary -------------------------------------------\n";
             richTextBox2.AppendText(time);
         }
 
@@ -408,13 +404,10 @@ namespace SerialTerminal
 
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
-            int select_index = comboBox1.SelectedIndex;
+            int select_index = comBox1.SelectedIndex;
 
-            com = comboBox1.Items[select_index].ToString();
-
-
+            com = comBox1.Items[select_index].ToString();
             comport_init();
-
             Richbox_clear_logo();
 
             try
@@ -516,6 +509,7 @@ namespace SerialTerminal
             richTextBox2.SelectionStart = richTextBox2.TextLength;
             richTextBox2.ScrollToCaret();
         }
+
         private static Color GetDarkerColor(Color clr)
         {
             Color c = new Color();
@@ -535,8 +529,8 @@ namespace SerialTerminal
 
         private void button6_Click(object sender, EventArgs e)
         {
-            string cmd = comboBox2.Text;
-            if(comboBox2.FindString(cmd) == -1) comboBox2.Items.Add(cmd);
+            string cmd = cmdBox.Text;
+            if(cmdBox.FindString(cmd) == -1) cmdBox.Items.Add(cmd);
             cmd += "\r\n";
             myPort.Write(cmd);
             //myPort.WriteLine(cmd);
@@ -545,24 +539,24 @@ namespace SerialTerminal
 
         private void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
         {
-            string cmd = comboBox2.Text;
+            string cmd = cmdBox.Text;
         }
 
         private void comboBox3_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if(!comboBox3.SelectedText.Equals(""))
-                myPort.BaudRate = int.Parse(comboBox3.SelectedText);
+            if(!speedboBox.SelectedText.Equals(""))
+                myPort.BaudRate = int.Parse(speedboBox.SelectedText);
         }
 
         private void comport_speed_init()
         {
-            comboBox3.Items.Add("9600");
-            comboBox3.Items.Add("19200");
-            comboBox3.Items.Add("38400");
-            comboBox3.Items.Add("115200");
-            comboBox3.SelectedIndex = 3;
-            if (!comboBox3.SelectedText.Equals(""))
-                myPort.BaudRate = int.Parse(comboBox3.SelectedText);
+            speedboBox.Items.Add("9600");
+            speedboBox.Items.Add("19200");
+            speedboBox.Items.Add("38400");
+            speedboBox.Items.Add("115200");
+            speedboBox.SelectedIndex = 3;
+            if (!speedboBox.SelectedText.Equals(""))
+                myPort.BaudRate = int.Parse(speedboBox.SelectedText);
         }
 
         private void comport_init()
@@ -574,6 +568,45 @@ namespace SerialTerminal
             myPort.DataBits = 8;
             myPort.StopBits = StopBits.One;
             myPort.DataReceived += MyPort_DataReceived;
+        }
+
+        private void register_cmd_table()
+        {
+            string[] cmd_table =
+            {
+                "at+gps=1",
+                "at+baro=1",
+                "at+calib=1",
+                "at+iccid=1",
+            };
+            for(int i=0;i<cmd_table.Length;i++)
+            {
+                cmdBox.Items.Add(cmd_table[i]);
+            }
+            cmdBox.SelectedIndex = 0;
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            string[] log_line = richTextBox1.Text.Split('\n');
+            string token = findBox.Text;
+            if (!token.Equals(""))
+            {
+                int total_line = log_line.Length;
+                for(int i = 0;i < total_line;i++)
+                {
+                    if (log_line[i].Contains(token))
+                    {
+                        richTextBox2.AppendText(log_line[i]+"\n");
+                    }
+                }
+            }
+            findBox.Text = "";
+        }
+
+        private void button7_Click(object sender, EventArgs e)
+        {
+            richTextBox2.Clear();
         }
     }
 
