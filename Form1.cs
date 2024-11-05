@@ -8,6 +8,7 @@ using System.IO.Ports;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -41,12 +42,12 @@ namespace SerialTerminal
             richTextBox1.ForeColor = Color.White;
             richTextBox2.BackColor = Color.Black;
             richTextBox2.ForeColor = Color.White;
-            button1.Text = "Open";
             button2.Text = "Close";
             GetSerialPorts();
             SaveFileDialog1 = new SaveFileDialog();
             Richbox_show_logo();
             gpsgroup_init();
+            comport_speed_init();
         }
 
         public void GetSerialPorts()
@@ -59,31 +60,6 @@ namespace SerialTerminal
             }
         }
 
-        private void button1_Click(object sender, EventArgs e)
-        {
-            myPort = new SerialPort();
-            myPort.BaudRate = 115200;
-            myPort.PortName = com;
-            myPort.Parity = Parity.None;
-            myPort.DataBits = 8;
-            myPort.StopBits = StopBits.One;
-            myPort.DataReceived += MyPort_DataReceived;
-
-            button1.BackColor = Color.LightGray;
-
-            Richbox_clear_logo();
-
-            try
-            {
-                show_title_info();
-                myPort.Open();
-                //test_gps();
-            }
-            catch (Exception exc)
-            {
-                MessageBox.Show(exc.Message, "Errore");
-            }
-        }
 
         private void button2_Click(object sender, EventArgs e)
         {
@@ -433,17 +409,11 @@ namespace SerialTerminal
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
             int select_index = comboBox1.SelectedIndex;
+
             com = comboBox1.Items[select_index].ToString();
 
-            myPort = new SerialPort();
-            myPort.BaudRate = 115200;
-            myPort.PortName = com;
-            myPort.Parity = Parity.None;
-            myPort.DataBits = 8;
-            myPort.StopBits = StopBits.One;
-            myPort.DataReceived += MyPort_DataReceived;
 
-            button1.BackColor = Color.LightGray;
+            comport_init();
 
             Richbox_clear_logo();
 
@@ -576,6 +546,34 @@ namespace SerialTerminal
         private void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
         {
             string cmd = comboBox2.Text;
+        }
+
+        private void comboBox3_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if(!comboBox3.SelectedText.Equals(""))
+                myPort.BaudRate = int.Parse(comboBox3.SelectedText);
+        }
+
+        private void comport_speed_init()
+        {
+            comboBox3.Items.Add("9600");
+            comboBox3.Items.Add("19200");
+            comboBox3.Items.Add("38400");
+            comboBox3.Items.Add("115200");
+            comboBox3.SelectedIndex = 3;
+            if (!comboBox3.SelectedText.Equals(""))
+                myPort.BaudRate = int.Parse(comboBox3.SelectedText);
+        }
+
+        private void comport_init()
+        {
+            myPort = new SerialPort();
+            myPort.BaudRate = 115200;
+            myPort.PortName = com;
+            myPort.Parity = Parity.None;
+            myPort.DataBits = 8;
+            myPort.StopBits = StopBits.One;
+            myPort.DataReceived += MyPort_DataReceived;
         }
     }
 
