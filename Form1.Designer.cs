@@ -70,7 +70,7 @@ namespace SerialTerminal
             this.comBox1.FormattingEnabled = true;
             this.comBox1.Location = new System.Drawing.Point(3, 12);
             this.comBox1.Name = "comBox1";
-            this.comBox1.Size = new System.Drawing.Size(107, 26);
+            this.comBox1.Size = new System.Drawing.Size(100, 26);
             this.comBox1.TabIndex = 3;
             this.comBox1.SelectedIndexChanged += new System.EventHandler(this.comboBox1_SelectedIndexChanged);
             // 
@@ -114,16 +114,16 @@ namespace SerialTerminal
             this.speedboBox.FormattingEnabled = true;
             this.speedboBox.Location = new System.Drawing.Point(116, 12);
             this.speedboBox.Name = "speedboBox";
-            this.speedboBox.Size = new System.Drawing.Size(100, 26);
+            this.speedboBox.Size = new System.Drawing.Size(100, 30);
             this.speedboBox.TabIndex = 11;
             this.speedboBox.SelectedIndexChanged += new System.EventHandler(this.comboBox3_SelectedIndexChanged);
             // 
             // cmdBox
             // 
             this.cmdBox.FormattingEnabled = true;
-            this.cmdBox.Location = new System.Drawing.Point(541, 11);
+            this.cmdBox.Location = new System.Drawing.Point(541, 12);
             this.cmdBox.Name = "cmdBox";
-            this.cmdBox.Size = new System.Drawing.Size(249, 26);
+            this.cmdBox.Size = new System.Drawing.Size(249, 30);
             this.cmdBox.TabIndex = 9;
             this.cmdBox.SelectedIndexChanged += new System.EventHandler(this.comboBox2_SelectedIndexChanged);
             // 
@@ -131,7 +131,7 @@ namespace SerialTerminal
             // 
             this.button6.Location = new System.Drawing.Point(796, 8);
             this.button6.Name = "button6";
-            this.button6.Size = new System.Drawing.Size(101, 30);
+            this.button6.Size = new System.Drawing.Size(100, 30);
             this.button6.TabIndex = 8;
             this.button6.Text = "Send";
             this.button6.UseVisualStyleBackColor = true;
