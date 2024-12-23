@@ -1,8 +1,10 @@
 
-![image](https://github.com/user-attachments/assets/9807b764-3947-4022-8858-f4b71bdacc56)
-
+![image](https://github.com/user-attachments/assets/d056b050-156e-411e-b02e-f4c7746d27ff)
 
 Serial Terminal
+241223
+1. time stamp 기능 추가
+
 241031
 1. Ansi Color 중에 white와 red 컬러 적용
 2. port 선택하면 open 버튼을 누르지 않고 바로 연결되도록 변경
