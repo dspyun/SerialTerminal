@@ -7,6 +7,7 @@ using System.IO;
 using System.IO.Ports;
 using System.Linq;
 using System.Net.NetworkInformation;
+using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -22,6 +23,7 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace SerialTerminal
 {
+
     public partial class SerialTerminal : Form
     {
         public SerialPort myPort;
@@ -34,14 +36,14 @@ namespace SerialTerminal
         bool allowAutoScroll = true;
         string scroll_mode="auto scroll";
         Color Current_Color;
+        VScrollBar vScrollBar1;
+        private bool port_flag=false;
+        private bool timestamp_flag = false;
 
         public SerialTerminal()
         {
             InitializeComponent();
-            richTextBox1.BackColor = Color.Black;
-            richTextBox1.ForeColor = Color.White;
-            richTextBox2.BackColor = Color.Black;
-            richTextBox2.ForeColor = Color.White;
+
             button2.Text = "Close";
             GetSerialPorts();
             SaveFileDialog1 = new SaveFileDialog();
@@ -49,6 +51,8 @@ namespace SerialTerminal
             gpsgroup_init();
             comport_speed_init();
             register_cmd_table();
+            Set_Default_Color();
+            AddMyScrollEventHandlers();
         }
 
         public void GetSerialPorts()
@@ -66,7 +70,19 @@ namespace SerialTerminal
         {
             try
             {
-                myPort.Close();
+  
+                if (port_flag.Equals(true))
+                {
+                    myPort.Close();
+                    button2.Text = "Open";
+                    port_flag = false;
+                } else
+                {
+                    myPort.Open();
+                    button2.Text = "Close";
+                    port_flag = true;
+
+                }
             }
             catch (Exception exc4)
             {
@@ -92,38 +108,150 @@ namespace SerialTerminal
 
         void MyPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
-            var inData = myPort.ReadExisting(); // Use local variable
+            //var inData = myPort.ReadExisting(); // Use local variable
+            //Invoke(new Action<string>(displayData_event), new object[] { inData });
+            int RecvSize = myPort.BytesToRead;
+            byte[] buff = new byte[RecvSize];
 
-            Invoke(new Action<string>(displayData_event), new object[] { inData });
+            if (RecvSize != 0)
+            {
+                myPort.Read(buff, 0, RecvSize);
+                if (RecvSize > 0)
+                    Invoke(new Action<byte[]>(displayData_event), new object[] { buff });
+            }
         }
 
-
-        private void displayData_event(string existing_data)
+        private void displayData_event(byte[] byte_array)
         {
-
             System.Drawing.Color mycolor = Color.White;
             dateTime = DateTime.Now;
-            string time = dateTime.ToString("HH:mm:ss");
 
-            for (int linenumber = 0; linenumber < 256; linenumber++)
+            // byte를 char로 변환시켜 string으로 build한다
+            int len = byte_array.Length;
+            String input_string = string.Empty;
+            for (int i = 0; i < len; i++)
             {
-                string oneline = Readline(existing_data, linenumber);
+                // \r = 0xd(Carriage Return), \n = 0xa(linefeed 줄바꿈)
+                // carrige return(0xd)이 여러번 오는 경우가 있다
+                // 그래서 0xd를 모두 빼고 0xa(linefeed)로 파싱한다
+                if (!byte_array[i].Equals(0xd))
+                    input_string += (char)byte_array[i];
+            }
 
-                if (oneline == null) break;
-                if (oneline.Equals("\n") || oneline.Equals(" ")) continue;
+            string[] lines = input_string.Split('\n');
 
-                Ansi_Coloring(time, oneline);
+            if (lines.Length > 0)
+            for(int i = 0;i<lines.Length;i++)
+            {
+                lines[i] += '\n';
+                //HexDump(lines[i]);
+                if (lines[i].Equals(null) || lines[i].Equals("\n")) continue;// lines[i] = "\r\n";
+                Ansi_Coloring(lines[i]);
                 //  Google, Reset 문자열을 Summary창에 보여준다
-                ETCSummary(time, oneline);
+                ETCSummary(lines[i]);
+
                 //  GPS CN0를 읽어 Summary창에 보여준다
-                PRNSummary(time, oneline);
+                PRNSummary(lines[i]);
                 // input_data에 여러 라인이 있을 경우,
                 // 읽은 라인은 제거하고 next 라인을 읽는다
 
             }
         }
 
-        private void PRNSummary(string time, string log)
+
+        private void Ansi_Coloring(string data)
+        {
+            char esc_ch = (char)0x1b;
+            string time = dateTime.ToString("HH:mm:ss");
+            time = time + " ";
+
+            if (data.Contains(esc_ch))
+            {
+                string[] normal_string = data.Split(esc_ch);
+                int array_length = normal_string.Length;
+
+                //if(timestamp_flag==true) richTextBox1.AppendText(time);
+
+                if (array_length == 1)
+                {
+                    display_color_string(normal_string[0]);
+                }
+                else if (array_length == 2)
+                {
+                     display_color_string(normal_string[1]);
+
+                }
+                else if (array_length == 3)
+                {
+                    display_color_string(normal_string[1]);
+                    display_color_string(normal_string[2]);
+                }
+
+            }
+            else
+            {
+                
+                // control 문자가 없으면
+                richTextBox1.SelectionColor = Current_Color;
+                if (timestamp_flag == true ) richTextBox1.AppendText(time + data);
+                else richTextBox1.AppendText(data);
+
+            }
+        }
+
+        private string display_color_string(string original)
+        {
+            string control_red_start = "[1;31m";
+            string control_white_start = "[0m";
+            string src = original;
+            string time = dateTime.ToString("HH:mm:ss");
+            time = time + " ";
+
+            if (src.Contains(control_red_start))
+            {
+                Current_Color = Color.Red;
+                richTextBox1.SelectionColor = Current_Color;
+                src = src.Replace(control_red_start, "");
+            }
+            else if (src.Contains(control_white_start))
+            {
+                Current_Color = Color.White;
+                richTextBox1.SelectionColor = Current_Color;
+                src = src.Replace(control_white_start, "");
+            }
+            else
+            {
+                Current_Color = Color.White;
+                richTextBox1.SelectionColor = Current_Color;
+            }
+
+            //richTextBox1.AppendText(src+"\r\n");
+            richTextBox1.AppendText(src);
+            return src;
+            //richTextBox1.AppendText(time+" ");
+
+
+        }
+
+        void HexDump(String str)
+        {
+            string hex_str="";
+            char[] buff = new char[1000];
+            if (str != null)
+            {
+                str.ToCharArray().CopyTo(buff, 0);
+                for (int i = 0; i < buff.Length; i++)
+                {
+                    int value = Convert.ToInt32(buff[i]);
+                    hex_str += String.Format("{0:X}", value);
+                    hex_str += " ";
+                }
+                richTextBox1.AppendText(hex_str+'\n');
+            }
+        }
+
+
+        private void PRNSummary(string log)
         {
 
             if (log.Contains("PRN:"))
@@ -144,8 +272,12 @@ namespace SerialTerminal
             }
 
         }
-        private void ETCSummary( string time, string log)
+        private void ETCSummary( string log)
         {
+            string time = dateTime.ToString("HH:mm:ss");
+            time = time + " ";
+
+
 
             if (log.Contains("Google"))
             {
@@ -158,9 +290,11 @@ namespace SerialTerminal
 
             if (log.Contains("RESTREAS"))
             {
+                richTextBox2.AppendText(time);
                 // 리셋이 발생하면 빨간색으로 표시해준다
                 richTextBox2.SelectionColor = Color.Red;                
                 richTextBox2.AppendText(log);
+                richTextBox2.SelectionColor = Color.White;
             }
             /*
             if (log.Contains("SMS") || log.Contains("sms"))
@@ -173,39 +307,6 @@ namespace SerialTerminal
 
         }
 
-        private void test_gps()
-        {
-
-            string test;
-            test = "[00:03:34.203,521] <dbg> location: method_gnss_print_pvt: PRN:  31, C/N0: 25.3, in fix: 0, unhealthy: 0\r\n";
-            //test = "[00:00:00.389,038] <err> main: RESTREAS : 0";
-            //test = "[00:04:43.760,437] <dbg> location: location_core_event_cb_fn:   Google maps URL: https://maps.google.com/?q=37.414010,126.976831";
-            //test = "Google maps URL: https://maps.google.com/?q=37.414010,126.976831\r\n";
-
-            for (int i =0;i<20;i++)
-            {
-                string prn = "";
-                string cn0 = "";
-                prn = Get_gps_token_value(test, "PRN:");
-                cn0 = Get_gps_token_value(test, "C/N0:");
-                if(prn != null) gpsgroup_Addcn0(prn, cn0);
-            }
-            if (test.Contains("Google"))
-            {
-
-                int index = test.IndexOf("Google");
-                int length = test.Length;
-                string position = test.Substring(index, length-index);
-                richTextBox2.AppendText(position);
-            }
-            else if (test.Contains("RESTREAS"))
-            {
-                richTextBox2.SelectionColor = Color.Red;
-                richTextBox2.AppendText(test);
-                //richTextBox2.SelectionColor = Color.Black;
-            }
-            show_gpsgroup();
-        }
 
         private void gpsgroup_Addcn0(string prn, string cn0)
         {
@@ -251,7 +352,7 @@ namespace SerialTerminal
             int cn0_count = 0;
             // gpsgroup : 3, 36.6, 24.7, 23.9, 24.6
             // PRN : 3, C/N0 : 26.6, 24.7, 23.9, 24.6,  >> average : 0
-            richTextBox2.SelectionColor = Color.Black;
+ 
             for (int i = 0; i< gpsgroup.Count; i++)
             {
                 string sum_string=""; 
@@ -284,6 +385,7 @@ namespace SerialTerminal
             string time = dateTime.ToString("HH:mm:ss");
             time += " --- End GPS Summary -------------------------------------------\n";
             richTextBox2.AppendText(time);
+
         }
 
         private void show_title_info()
@@ -324,63 +426,22 @@ namespace SerialTerminal
             
         }
 
-
-        private void Ansi_Coloring(string time, string data)
+        private void Set_Default_Color()
         {
-            char esc_ch =(char) 0x1b;
+            richTextBox1.BackColor = Color.Black;
+            richTextBox1.ForeColor = Color.White;
+            richTextBox2.BackColor = Color.Black;
+            richTextBox2.ForeColor = Color.White;
 
-            richTextBox1.AppendText(time);
-            if (data.Contains(esc_ch)) {
-                string[] normal_string = data.Split(esc_ch);
-                int array_length = normal_string.Length;
-
-                set_coloring(normal_string[0]);
-
-                if (array_length == 2)
-                {
-                    set_coloring(normal_string[1]);
-
-                } else if (array_length == 3)
-                {
-                    set_coloring(normal_string[1]);
-                    set_coloring(normal_string[2]);
-                }
-            }
-            else
-            {
-                // control 문자가 없으면
-                richTextBox1.SelectionColor = Current_Color;
-                if(data.Contains("\n")) richTextBox1.AppendText(data);
-                else richTextBox1.AppendText(data + "\r\n");
-            }
-
+            Current_Color = Color.White;
+            richTextBox1.SelectionColor = Current_Color;
+            richTextBox2.SelectionColor = Current_Color;
         }
 
-        private void set_coloring(string original)
-        {
-            string control_red_start = "[1;31m";
-            string control_white_start = "[0m";
-            string src= original;
-
-            if (src.Contains(control_red_start))
-            {
-                Current_Color = Color.Red;
-                richTextBox1.SelectionColor = Current_Color;
-                src = src.Replace(control_red_start, "");
-                richTextBox1.AppendText(src);
-
-            }
-            else if (src.Contains(control_white_start))
-            {
-                Current_Color = Color.White;
-                richTextBox1.SelectionColor = Current_Color;
-                src = src.Replace(control_white_start, "");
-                richTextBox1.AppendText(src);
-            }
-        }
-
+     
         private string Readline(string data,int index)
         {
+            /*
             string result="";
             char[] chars = data.ToCharArray();
             int ret_index = 0;
@@ -395,12 +456,12 @@ namespace SerialTerminal
                 }
             }
             return null;
+            */
+            string[] lines = data.Split('\n');
+            if (index > lines.Length) return null;
+            else return lines[index];
         }
 
-        private void Form1_Load(object sender, EventArgs e)
-        {
-
-        }
 
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -415,6 +476,8 @@ namespace SerialTerminal
                             
                 show_title_info();
                 myPort.Open();
+                button2.Text = "Close";
+                port_flag = true;
                 //test_gps();
                 gpsgroup_init();
                 this.richTextBox2.Focus();
@@ -473,11 +536,7 @@ namespace SerialTerminal
             richTextBox1.Clear();
             richTextBox1.SelectAll();
             richTextBox1.Update();
-        }
-
-        private void RichTextBox1_VScroll(object sender, EventArgs e)
-        {
-
+            richTextBox2.Clear();
         }
 
         private void RichTextBox1_Click(object sender, EventArgs e)
@@ -485,8 +544,20 @@ namespace SerialTerminal
             // auto scroll할 때는 해당 textbox에 포커스를 해주고
             // stop scroll할 때는 해당 textbox에 포커스를 빼준다
             // 포커스에 따라서 auto/stop기능 활성화가 정상적으로 동작한다
-            if (allowAutoScroll) { allowAutoScroll = false; scroll_mode = "stop scroll"; this.richTextBox2.Focus(); }
-            else { allowAutoScroll = true; scroll_mode = "auto scroll"; this.richTextBox1.Focus(); }
+
+            if (allowAutoScroll) 
+            { 
+                allowAutoScroll = false; 
+                scroll_mode = "stop scroll";
+                this.richTextBox2.Focus();
+                richTextBox1.BackColor = Color.DarkBlue;
+            }
+            else { 
+                allowAutoScroll = true; 
+                scroll_mode = "auto scroll"; 
+                this.richTextBox1.Focus();
+                richTextBox1.BackColor = Color.Black;
+            }
 
             show_title_info();
 
@@ -497,6 +568,23 @@ namespace SerialTerminal
             
             if (allowAutoScroll)
             {
+
+
+                /*
+                
+                int text_length = richTextBox1.TextLength; 
+                if (text_length >= 300000)
+                {
+                    int delete_line_length = richTextBox1.Find("\n");
+                    richTextBox1.Text.ToArray("\n");
+                    text_array[0] = "";
+                }
+                TextReader read = new System.IO.StringReader(richTextBox1.Text);
+                String oldest_line = read.ReadLine();
+                richTextBox1.SelectedText.Replace(oldest_line, "");
+                richTextBox1.
+                */
+
                 richTextBox1.SelectionStart = richTextBox1.TextLength;
                 richTextBox1.ScrollToCaret();
             }
@@ -504,42 +592,68 @@ namespace SerialTerminal
             
         }
 
+        private void AddMyScrollEventHandlers()
+        {
+            // Create and initialize a VScrollBar.
+            vScrollBar1 = new VScrollBar();
+
+            // Add event handlers for the OnScroll and OnValueChanged events.
+            vScrollBar1.Scroll += new ScrollEventHandler(this.vScrollBar1_Scroll);
+            //vScrollBar1.ValueChanged += new ScrollEventHandler(this.vScrollBar1_ValueChanged);
+
+        }
+
+        private void vScrollBar1_Scroll(object sender, ScrollEventArgs e)
+        {
+            //vScrollBar1.Value = vScrollBar1.Value + 40;
+            String temp_txt = "vScrollBar Value:(OnScroll  Event) " + e.NewValue.ToString();
+            temp_txt += "\n" + " height : " + vScrollBar1.Height.ToString();
+            richTextBox2.AppendText(temp_txt);
+        }
+
+        // Create the ValueChanged event handler.
+        private void vScrollBar1_ValueChanged(Object sender, EventArgs e)
+        {
+            // Display the new value in the label.
+            richTextBox2.Text = "vScrollBar Value:(OnValueChanged Event) " + vScrollBar1.Value.ToString();
+        }
+
+        /*
+        private void richTextBox1_MouseDown(object sender, EventArgs e)
+        {
+            //if (Focused)  Focus();
+            // 마우스 버튼이 눌려지고
+            if (Focused && e.Button == MouseButtons.Left)
+            {
+                //if(스크롤이 가장 하단에 있으면)){
+                    allowAutoScroll = true;
+                    richTextBox2.ScrollToCaret();
+                //}
+
+            }
+
+            base.OnMouseDown(e);
+        }
+        */
         private void richTextBox2_TextChanged(object sender, EventArgs e)
         {
             richTextBox2.SelectionStart = richTextBox2.TextLength;
             richTextBox2.ScrollToCaret();
         }
 
-        private static Color GetDarkerColor(Color clr)
-        {
-            Color c = new Color();
-            int r, g, b;
-
-            r = clr.R - 18;
-            g = clr.G - 18;
-            b = clr.B - 18;
-
-            if (r < 0) r = 0;
-            if (g < 0) g = 0;
-            if (b < 0) b = 0;
-
-            c = Color.FromArgb(r, g, b);
-            return c;
-        }
-
         private void button6_Click(object sender, EventArgs e)
         {
             string cmd = cmdBox.Text;
-            if(cmdBox.FindString(cmd) == -1) cmdBox.Items.Add(cmd);
+            if(cmdBox.FindString(cmd) == -1) cmdBox.Items.Insert(0,cmd);
             cmd += "\r\n";
             myPort.Write(cmd);
-            //myPort.WriteLine(cmd);
-            //richTextBox2.AppendText(cmd);
+
         }
 
         private void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
         {
             string cmd = cmdBox.Text;
+            if(cmd.Contains("\n")) myPort.Write(cmd);
         }
 
         private void comboBox3_SelectedIndexChanged(object sender, EventArgs e)
@@ -575,9 +689,12 @@ namespace SerialTerminal
             string[] cmd_table =
             {
                 "at+gps=1",
-                "at+baro=1",
                 "at+calib=1",
+                "at+batt=1",
+                "at+modem=1",
+                "at+baro=1",
                 "at+iccid=1",
+                "at+init=1",
             };
             for(int i=0;i<cmd_table.Length;i++)
             {
@@ -586,28 +703,20 @@ namespace SerialTerminal
             cmdBox.SelectedIndex = 0;
         }
 
-        private void button5_Click(object sender, EventArgs e)
+        private void HSend_Click(object sender, EventArgs e)
         {
-            string[] log_line = richTextBox1.Text.Split('\n');
-            string token = findBox.Text;
-            if (!token.Equals(""))
+            if(timestamp_flag == true)
             {
-                int total_line = log_line.Length;
-                for(int i = 0;i < total_line;i++)
-                {
-                    if (log_line[i].Contains(token))
-                    {
-                        richTextBox2.AppendText(log_line[i]+"\n");
-                    }
-                }
+                StampButton.Text = "StampOn";
+                timestamp_flag = false;
             }
-            findBox.Text = "";
+            else
+            {
+                StampButton.Text = "StampOff";
+                timestamp_flag = true;
+            }
         }
 
-        private void button7_Click(object sender, EventArgs e)
-        {
-            richTextBox2.Clear();
-        }
     }
 
 
