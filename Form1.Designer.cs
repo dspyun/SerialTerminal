@@ -39,14 +39,12 @@ namespace SerialTerminal
             this.speedboBox = new System.Windows.Forms.ComboBox();
             this.cmdBox = new System.Windows.Forms.ComboBox();
             this.button6 = new System.Windows.Forms.Button();
+            this.StampButton = new System.Windows.Forms.Button();
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.richTextBox1 = new System.Windows.Forms.RichTextBox();
             this.button1 = new System.Windows.Forms.Button();
             this.richTextBox2 = new System.Windows.Forms.RichTextBox();
-            this.findBox = new System.Windows.Forms.ComboBox();
-            this.button5 = new System.Windows.Forms.Button();
-            this.button7 = new System.Windows.Forms.Button();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
@@ -103,6 +101,7 @@ namespace SerialTerminal
             this.panel1.Controls.Add(this.button2);
             this.panel1.Controls.Add(this.button4);
             this.panel1.Controls.Add(this.button3);
+            this.panel1.Controls.Add(this.StampButton);
             this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel1.Location = new System.Drawing.Point(0, 0);
             this.panel1.Name = "panel1";
@@ -114,7 +113,7 @@ namespace SerialTerminal
             this.speedboBox.FormattingEnabled = true;
             this.speedboBox.Location = new System.Drawing.Point(116, 12);
             this.speedboBox.Name = "speedboBox";
-            this.speedboBox.Size = new System.Drawing.Size(100, 30);
+            this.speedboBox.Size = new System.Drawing.Size(100, 26);
             this.speedboBox.TabIndex = 11;
             this.speedboBox.SelectedIndexChanged += new System.EventHandler(this.comboBox3_SelectedIndexChanged);
             // 
@@ -123,19 +122,29 @@ namespace SerialTerminal
             this.cmdBox.FormattingEnabled = true;
             this.cmdBox.Location = new System.Drawing.Point(541, 12);
             this.cmdBox.Name = "cmdBox";
-            this.cmdBox.Size = new System.Drawing.Size(249, 30);
+            this.cmdBox.Size = new System.Drawing.Size(183, 26);
             this.cmdBox.TabIndex = 9;
             this.cmdBox.SelectedIndexChanged += new System.EventHandler(this.comboBox2_SelectedIndexChanged);
             // 
             // button6
             // 
-            this.button6.Location = new System.Drawing.Point(796, 8);
+            this.button6.Location = new System.Drawing.Point(735, 8);
             this.button6.Name = "button6";
             this.button6.Size = new System.Drawing.Size(100, 30);
             this.button6.TabIndex = 8;
             this.button6.Text = "Send";
             this.button6.UseVisualStyleBackColor = true;
             this.button6.Click += new System.EventHandler(this.button6_Click);
+            // 
+            // StampButton
+            // 
+            this.StampButton.Location = new System.Drawing.Point(841, 8);
+            this.StampButton.Name = "StampButton";
+            this.StampButton.Size = new System.Drawing.Size(89, 30);
+            this.StampButton.TabIndex = 13;
+            this.StampButton.Text = "StampOn";
+            this.StampButton.UseVisualStyleBackColor = true;
+            this.StampButton.Click += new System.EventHandler(this.HSend_Click);
             // 
             // tableLayoutPanel1
             // 
@@ -165,9 +174,6 @@ namespace SerialTerminal
             // 
             // splitContainer1.Panel2
             // 
-            this.splitContainer1.Panel2.Controls.Add(this.button7);
-            this.splitContainer1.Panel2.Controls.Add(this.button5);
-            this.splitContainer1.Panel2.Controls.Add(this.findBox);
             this.splitContainer1.Panel2.Controls.Add(this.button1);
             this.splitContainer1.Panel2.Controls.Add(this.richTextBox2);
             this.splitContainer1.Size = new System.Drawing.Size(1027, 671);
@@ -185,7 +191,6 @@ namespace SerialTerminal
             this.richTextBox1.Size = new System.Drawing.Size(1027, 486);
             this.richTextBox1.TabIndex = 0;
             this.richTextBox1.Text = "";
-            this.richTextBox1.VScroll += new System.EventHandler(this.RichTextBox1_VScroll);
             this.richTextBox1.Click += new System.EventHandler(this.RichTextBox1_Click);
             this.richTextBox1.TextChanged += new System.EventHandler(this.richTextBox1_TextChanged);
             // 
@@ -201,44 +206,14 @@ namespace SerialTerminal
             // 
             // richTextBox2
             // 
-            this.richTextBox2.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.richTextBox2.Location = new System.Drawing.Point(0, 24);
+            this.richTextBox2.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.richTextBox2.Location = new System.Drawing.Point(0, 0);
             this.richTextBox2.Name = "richTextBox2";
             this.richTextBox2.ReadOnly = true;
-            this.richTextBox2.Size = new System.Drawing.Size(1024, 153);
+            this.richTextBox2.Size = new System.Drawing.Size(1027, 178);
             this.richTextBox2.TabIndex = 0;
             this.richTextBox2.Text = "";
             this.richTextBox2.TextChanged += new System.EventHandler(this.richTextBox2_TextChanged);
-            // 
-            // findBox
-            // 
-            this.findBox.FormattingEnabled = true;
-            this.findBox.Location = new System.Drawing.Point(0, -1);
-            this.findBox.Name = "findBox";
-            this.findBox.Size = new System.Drawing.Size(375, 26);
-            this.findBox.TabIndex = 2;
-            // 
-            // button5
-            // 
-            this.button5.Location = new System.Drawing.Point(381, -5);
-            this.button5.Name = "button5";
-            this.button5.Size = new System.Drawing.Size(94, 28);
-            this.button5.TabIndex = 3;
-            this.button5.Text = "Find";
-            this.button5.UseVisualStyleBackColor = true;
-            this.button5.Click += new System.EventHandler(this.button5_Click);
-            // 
-            // button7
-            // 
-            this.button7.Location = new System.Drawing.Point(479, -5);
-            this.button7.Name = "button7";
-            this.button7.Size = new System.Drawing.Size(92, 29);
-            this.button7.TabIndex = 4;
-            this.button7.Text = "Buf Clear";
-            this.button7.UseVisualStyleBackColor = true;
-            this.button7.Click += new System.EventHandler(this.button7_Click);
             // 
             // SerialTerminal
             // 
@@ -248,12 +223,12 @@ namespace SerialTerminal
             this.Controls.Add(this.splitContainer1);
             this.Controls.Add(this.tableLayoutPanel1);
             this.Controls.Add(this.panel1);
+            this.DoubleBuffered = true;
             this.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.Name = "SerialTerminal";
             this.Text = "SerialConsole";
-            this.Load += new System.EventHandler(this.Form1_Load);
             this.panel1.ResumeLayout(false);
             this.splitContainer1.Panel1.ResumeLayout(false);
             this.splitContainer1.Panel2.ResumeLayout(false);
@@ -278,9 +253,7 @@ namespace SerialTerminal
         private System.Windows.Forms.ComboBox cmdBox;
         private System.Windows.Forms.ComboBox speedboBox;
         private System.Windows.Forms.Button button1;
-        private System.Windows.Forms.Button button5;
-        private System.Windows.Forms.ComboBox findBox;
-        private System.Windows.Forms.Button button7;
+        private System.Windows.Forms.Button StampButton;
         // private System.Windows.Forms.TextBox textBox1;
     }
 }
